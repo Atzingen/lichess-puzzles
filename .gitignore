@@ -1,0 +1,27 @@
+# Data / DB
+data/*
+!data/.gitkeep
+*.sqlite
+*.sqlite-journal
+*.csv.zst
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
