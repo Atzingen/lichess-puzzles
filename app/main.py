@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.routers import meta as meta_router
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 MAINTENANCE_HTML = """<!doctype html>
@@ -26,6 +27,7 @@ def _db_exists() -> bool:
 
 
 app = FastAPI(title="lichess-puzzles", version="0.1.0")
+app.include_router(meta_router.router)
 
 
 @app.get("/", response_class=HTMLResponse)
