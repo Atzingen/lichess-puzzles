@@ -112,10 +112,10 @@ CREATE INDEX idx_theme ON puzzle_themes(theme);
 - `piece_count`: count of non-digit, non-`/` chars in the FEN board segment.
 - `move_number`: integer at position 5 of the FEN (fullmove counter).
 - `side_to_move`: char at position 1 of the FEN (`w` or `b`).
-- `phase`:
-  - `opening` if `move_number <= 10`
-  - `endgame` if `piece_count <= 10`
-  - `middlegame` otherwise
+- `phase` — evaluated in order, first match wins:
+  1. `opening` if `move_number <= 10`
+  2. else `endgame` if `piece_count <= 10`
+  3. else `middlegame`
 - `material_balance`: sum of piece values (P=1, N=3, B=3, R=5, Q=9) for white
   minus the same for black.
 - `has_promoted`: true if any piece type exceeds its initial count (e.g., 3
@@ -391,8 +391,14 @@ services:
 - `make up` / `make down` — start/stop
 - `make logs` — tail logs
 - `make ingest` — run `docker compose run --rm app python -m ingest.run`
-- `make rebuild` — down + build + up
+- `make rebuild` — down + build + up (keeps the `data/` volume, so the
+  existing SQLite DB is preserved across rebuilds)
 - `make test` — run pytest inside the image
+
+On app startup, if `DB_PATH` does not exist the container logs a warning and
+serves a maintenance page pointing to `make ingest`; it does not crash. This
+makes the first-time bootstrap and the "I pulled before ingesting" case both
+survivable.
 
 ## 12. CI/CD — GitHub Actions
 
