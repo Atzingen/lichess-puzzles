@@ -1,0 +1,11 @@
+PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags
+00008,r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24,f2g3 e6e7 b2b1 b3c1 b1c1 h6c1,1812,75,97,3152,advantage attraction fork middlegame short,https://lichess.org/yyznGmXs/black#48,Kings_Gambit_Accepted Kings_Gambit_Accepted_Abbazia_Defense
+0000D,5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 23,d3d6 f8d8 d6d8 f6d8,1556,75,94,8216,advantage endgame short,https://lichess.org/F8M8OS71/white#45,
+0009B,r1bq1rk1/pp3pbp/2n1pnp1/2pp4/3P4/2PBPN1P/PP1N1PP1/R1BQR1K1 b - - 0 9,c5d4 c3d4 c6b4 d3b1,1261,74,96,1243,advantage middlegame short,https://lichess.org/FKaqnt4A/black#18,
+0009R,3r1rk1/p4p1p/1p4p1/2pP4/8/1NP5/PP3PPP/R4RK1 w - - 0 22,d5d6 a7a6 d6d7 f8d8 a1d1 d8d7,1522,75,87,1012,advantage endgame long,https://lichess.org/Xg5cGM9Z/white#43,
+000Vs,8/8/4k3/5q2/5P2/8/6K1/8 b - - 1 60,f5g4 g2h2 g4h4,952,74,93,4021,endgame mate mateIn2 short,https://lichess.org/4MWQvU61/black#119,
+001AD,r1b1kb1r/pp1n1ppp/2p1pn2/6B1/2pP4/2N1PN2/PP3PPP/R2QKB1R w KQkq - 0 8,g5f6 d7f6 f1c4 b7b5 c4b5 c6b5 c3b5,1389,75,89,992,advantage middlegame short,https://lichess.org/jXaJAoL3/white#15,
+001AE,r2qkb1r/ppp2pp1/2np1n1p/8/3PP3/2N5/PPP1BPPP/R1BQK2R b KQkq - 0 8,c8g4 e2g4 f6g4,1024,76,91,2188,advantage middlegame short,https://lichess.org/jXaJAoL4/black#16,Scandinavian_Defense
+001AF,8/8/8/8/4k3/8/R7/4K3 w - - 0 50,a2a4 e4f5 a4a5 f5e6 a5a6,1600,80,78,540,endgame mate mateIn3,https://lichess.org/game50/white#99,
+001AG,6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 40,g1f1 g8g7 f1e2 g7f6 e2e3,1100,80,80,300,endgame middlegame,https://lichess.org/game51/white#79,
+001AH,r2qkb1r/ppp2ppp/2np1n2/1B2p1B1/4P3/2N2N2/PPP2PPP/R2QK2R w KQkq - 0 7,g5f6 g7f6 b5c6 b7c6 f3e5 f6e5,1725,75,92,1500,advantage middlegame short,https://lichess.org/game70/white#13,Ruy_Lopez_Exchange_Variation
