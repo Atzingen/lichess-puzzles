@@ -1,0 +1,22 @@
+[
+  { "name": "Finais básicos", "filters": {
+      "piece_count_min": 4, "piece_count_max": 8,
+      "phase": "endgame", "rating_min": 1000, "rating_max": 1400 } },
+  { "name": "Mate em 1", "filters": { "themes_all": ["mate", "mateIn1"] } },
+  { "name": "Mate em 2", "filters": { "themes_all": ["mate", "mateIn2"] } },
+  { "name": "Mate em 3", "filters": { "themes_all": ["mate", "mateIn3"] } },
+  { "name": "Táticas clássicas", "filters": {
+      "phase": "middlegame", "rating_min": 1500, "rating_max": 1900,
+      "themes_any": ["fork", "pin", "skewer", "discoveredAttack"] } },
+  { "name": "Sacrifícios posicionais", "filters": {
+      "themes_all": ["sacrifice"], "rating_min": 1800 } },
+  { "name": "Siciliana", "filters": {
+      "opening_tags_any": ["Sicilian_Defense"],
+      "move_number_min": 10, "move_number_max": 20 } },
+  { "name": "Finais de torre", "filters": {
+      "phase": "endgame", "themes_any": ["rookEndgame"] } },
+  { "name": "Populares", "filters": {
+      "popularity_min": 80, "nb_plays_min": 1000 } },
+  { "name": "Desafio alto", "filters": {
+      "rating_min": 2000, "rating_max": 2400, "popularity_min": 50 } }
+]
