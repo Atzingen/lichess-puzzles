@@ -1,3 +1,99 @@
 <!doctype html>
-<html lang="pt-br"><head><meta charset="utf-8"><title>lichess-puzzles</title></head>
-<body><h1>lichess-puzzles</h1><p>Trainer loading...</p></body></html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>lichess-puzzles</title>
+<link rel="stylesheet" href="/static/vendor/chessground.base.css"/>
+<link rel="stylesheet" href="/static/vendor/chessground.brown.css"/>
+<link rel="stylesheet" href="/static/vendor/chessground.cburnett.css"/>
+<link rel="stylesheet" href="/static/css/styles.css"/>
+<script type="importmap">
+{
+  "imports": {
+    "chessground": "https://esm.sh/chessground@9.1.1",
+    "chess.js":    "https://esm.sh/chess.js@1.0.0"
+  }
+}
+</script>
+</head>
+<body>
+<header>
+  <h1>lichess-puzzles</h1>
+  <div>Filtrados: <span id="counter">—</span></div>
+  <div id="puzzle-meta"></div>
+</header>
+
+<main>
+  <section class="panel" id="filters">
+    <div class="preset-row" id="presets"></div>
+
+    <details open><summary>Básico</summary>
+      <div class="row"><label>Rating</label>
+        <input id="rating_min" type="number" placeholder="min">
+        <input id="rating_max" type="number" placeholder="max"></div>
+      <div class="row"><label>Nº peças</label>
+        <input id="piece_count_min" type="number" placeholder="min">
+        <input id="piece_count_max" type="number" placeholder="max"></div>
+      <div class="row"><label>Nº do lance</label>
+        <input id="move_number_min" type="number" placeholder="min">
+        <input id="move_number_max" type="number" placeholder="max"></div>
+      <div class="row"><label>Popularity ≥</label>
+        <input id="popularity_min" type="number" placeholder=""></div>
+      <div class="row"><label>NbPlays ≥</label>
+        <input id="nb_plays_min" type="number" placeholder=""></div>
+    </details>
+
+    <details><summary>Derivados</summary>
+      <div class="row"><label>Lado a mover</label>
+        <select id="side_to_move"><option value="">—</option>
+          <option value="w">Brancas</option><option value="b">Pretas</option></select></div>
+      <div class="row"><label>Fase</label>
+        <select id="phase"><option value="">—</option>
+          <option value="opening">Abertura</option>
+          <option value="middlegame">Meio-jogo</option>
+          <option value="endgame">Final</option></select></div>
+      <div class="row"><label>Material (B−P)</label>
+        <input id="material_balance_min" type="number" placeholder="min">
+        <input id="material_balance_max" type="number" placeholder="max"></div>
+      <div class="row"><label>Promoção</label>
+        <select id="has_promoted"><option value="">—</option>
+          <option value="true">sim</option><option value="false">não</option></select></div>
+      <div class="row"><label>En passant</label>
+        <select id="has_en_passant"><option value="">—</option>
+          <option value="true">sim</option><option value="false">não</option></select></div>
+      <div class="row"><label>Roque disponível</label>
+        <select id="has_castling"><option value="">—</option>
+          <option value="true">sim</option><option value="false">não</option></select></div>
+    </details>
+
+    <details><summary>Themes (qualquer um)</summary>
+      <div id="themes_any" class="checkbox-list"></div>
+    </details>
+    <details><summary>Themes (todos)</summary>
+      <div id="themes_all" class="checkbox-list"></div>
+    </details>
+    <details><summary>Aberturas</summary>
+      <div id="opening_tags_any" class="checkbox-list"></div>
+    </details>
+
+    <button class="primary" id="btn-search">Buscar</button>
+  </section>
+
+  <section class="panel" id="board-wrap">
+    <div id="board"></div>
+  </section>
+
+  <section class="panel" id="info">
+    <div id="puzzle-info">Escolha filtros e clique Buscar.</div>
+    <div id="status"></div>
+    <button class="secondary" id="btn-reveal" disabled>Revelar solução</button>
+    <button class="secondary" id="btn-reset" disabled>Resetar posição</button>
+    <button class="secondary" id="btn-next" disabled>Próximo</button>
+    <div id="puzzle-link"></div>
+  </section>
+</main>
+
+<script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
