@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    container_name: lichess-puzzles
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DB_PATH=/app/data/puzzles.sqlite
+      - DUMP_PATH=/app/data/lichess_db_puzzle.csv.zst
+    restart: unless-stopped
