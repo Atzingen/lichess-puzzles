@@ -1,0 +1,32 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: pytest -v
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_HOSTINGER02 }}
+          username: ${{ secrets.SSH_USER_HOSTINGER02 }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_HOSTINGER02 }}
+          script: |
+            cd /var/local/apps/lichess-puzzles
+            GIT_SSH_COMMAND='ssh -i ~/.ssh/lichess_puzzles_deploy_key' git pull
+            make rebuild
