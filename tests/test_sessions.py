@@ -256,3 +256,38 @@ def test_create_session_404_on_missing_parent(app_with_db) -> None:
         "parent_session": "00000000-0000-0000-0000-000000000000",
     })
     assert r.status_code == 404
+
+
+def test_create_session_forces_auto_advance_in_time_and_count_modes(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    for mode, target in [("time", 5), ("count", 50)]:
+        sid = c.post("/api/sessions", json={
+            "mode": mode, "target": target, "auto_advance": False, "filters": {},
+        }).json()["session_id"]
+        from app.db import connect
+        from app.config import settings
+        conn = connect(settings.db_path)
+        try:
+            row = conn.execute(
+                "SELECT auto_advance FROM sessions WHERE session_id = ?", (sid,)
+            ).fetchone()
+            assert row["auto_advance"] == 1, f"{mode} mode must force auto_advance=true"
+        finally:
+            conn.close()
+
+
+def test_create_session_respects_auto_advance_in_free_mode(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid = c.post("/api/sessions", json={
+        "mode": "free", "auto_advance": False, "filters": {},
+    }).json()["session_id"]
+    from app.db import connect
+    from app.config import settings
+    conn = connect(settings.db_path)
+    try:
+        row = conn.execute(
+            "SELECT auto_advance FROM sessions WHERE session_id = ?", (sid,)
+        ).fetchone()
+        assert row["auto_advance"] == 0, "free mode must respect client-supplied auto_advance"
+    finally:
+        conn.close()

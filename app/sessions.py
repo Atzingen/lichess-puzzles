@@ -49,6 +49,7 @@ def create_session(
 
     session_id = str(uuid.uuid4())
     started_at = _now_iso()
+    auto_advance = True if req.mode in ("time", "count") else req.auto_advance
     conn.execute(
         """
         INSERT INTO sessions (
@@ -60,7 +61,7 @@ def create_session(
         (
             session_id, started_at,
             req.mode, req.target,
-            1 if req.auto_advance else 0,
+            1 if auto_advance else 0,
             1 if req.dedupe_solved else 0,
             json.dumps(req.filters.model_dump(exclude_none=True)),
             req.parent_session,
