@@ -28,6 +28,31 @@ CREATE TABLE IF NOT EXISTS puzzle_themes (
     theme      TEXT NOT NULL,
     PRIMARY KEY (puzzle_id, theme)
 );
+
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id      TEXT PRIMARY KEY,
+    started_at      TEXT NOT NULL,
+    ended_at        TEXT,
+    end_reason      TEXT,
+    mode            TEXT NOT NULL,
+    target          INTEGER,
+    auto_advance    INTEGER NOT NULL,
+    dedupe_solved   INTEGER NOT NULL,
+    filters_json    TEXT NOT NULL,
+    parent_session  TEXT,
+    label           TEXT
+);
+
+CREATE TABLE IF NOT EXISTS attempts (
+    session_id      TEXT NOT NULL,
+    order_idx       INTEGER NOT NULL,
+    puzzle_id       TEXT NOT NULL,
+    correct         INTEGER NOT NULL,
+    time_ms         INTEGER NOT NULL,
+    completed_at    TEXT NOT NULL,
+    PRIMARY KEY (session_id, order_idx),
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
+);
 """
 
 INDEXES = [
@@ -38,6 +63,9 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_side          ON puzzles(side_to_move)",
     "CREATE INDEX IF NOT EXISTS idx_popularity    ON puzzles(popularity)",
     "CREATE INDEX IF NOT EXISTS idx_theme         ON puzzle_themes(theme)",
+    "CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_attempts_session ON attempts(session_id)",
+    "CREATE INDEX IF NOT EXISTS idx_attempts_puzzle  ON attempts(puzzle_id)",
 ]
 
 

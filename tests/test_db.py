@@ -21,9 +21,12 @@ def test_init_db_creates_tables_and_indexes(tmp_path: Path) -> None:
 
     assert "puzzles" in tables
     assert "puzzle_themes" in tables
+    assert "sessions" in tables
+    assert "attempts" in tables
     for needed in [
         "idx_rating", "idx_piece_count", "idx_move_number",
         "idx_phase", "idx_side", "idx_popularity", "idx_theme",
+        "idx_sessions_started", "idx_attempts_session", "idx_attempts_puzzle",
     ]:
         assert needed in indexes, f"missing index {needed}"
 
