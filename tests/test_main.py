@@ -1,11 +1,12 @@
 from fastapi.testclient import TestClient
 
 
-def test_root_serves_phase1_stub_when_db_exists(app_with_db) -> None:
+def test_root_serves_config_stub(app_with_db) -> None:
     c = TestClient(app_with_db)
     r = c.get("/")
     assert r.status_code == 200
-    assert "configuração" in r.text.lower() or "configuracao" in r.text.lower() or "<h1>" in r.text
+    assert "/static/js/config.js" in r.text
+    assert "Sessões anteriores" in r.text
 
 
 def test_explore_serves_old_single_page(app_with_db) -> None:
