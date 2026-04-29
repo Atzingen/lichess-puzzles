@@ -23,6 +23,14 @@ baixar e importar o dump oficial do Lichess (~5-10 min).</p>
 </body></html>
 """
 
+# Phase-1 placeholder for `/`; Task 11 swaps this for a real stub file.
+ROOT_PLACEHOLDER_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><title>lichess-puzzles</title></head>
+<body><h1>lichess-puzzles</h1>
+<p>Configuração da sessão (Fase 2 ativará).</p>
+<p><a href="/explore">/explore</a></p></body></html>
+"""
+
 
 def _db_exists() -> bool:
     return settings.db_path.exists()
@@ -38,7 +46,14 @@ app.include_router(sessions_router.router)
 def root() -> HTMLResponse:
     if not _db_exists():
         return HTMLResponse(MAINTENANCE_HTML)
-    return HTMLResponse((STATIC_DIR / "index.html").read_text(encoding="utf-8"))
+    return HTMLResponse(ROOT_PLACEHOLDER_HTML)
+
+
+@app.get("/explore", response_class=HTMLResponse)
+def explore() -> HTMLResponse:
+    if not _db_exists():
+        return HTMLResponse(MAINTENANCE_HTML)
+    return HTMLResponse((STATIC_DIR / "explore.html").read_text(encoding="utf-8"))
 
 
 @app.get("/healthz")
