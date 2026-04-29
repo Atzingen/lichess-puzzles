@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.db import init_db
 from app.routers import meta as meta_router
 from app.routers import puzzles as puzzles_router
 from app.routers import sessions as sessions_router
@@ -25,6 +26,13 @@ baixar e importar o dump oficial do Lichess (~5-10 min).</p>
 
 def _db_exists() -> bool:
     return settings.db_path.exists()
+
+
+# Apply additive schema migrations to a pre-existing DB on boot.
+# init_db itself would CREATE the file if missing, which would defeat the
+# maintenance-page check below — so guard on existence.
+if _db_exists():
+    init_db(settings.db_path)
 
 
 app = FastAPI(title="lichess-puzzles", version="0.1.0")
