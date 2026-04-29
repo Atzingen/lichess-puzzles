@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import sqlite3
 
+from fastapi.testclient import TestClient
+
 from app.db import connect, init_db
 from app.models import CreateSessionRequest, Filters
 from app.sessions import create_session
@@ -40,3 +42,30 @@ def test_create_session_returns_uuid_and_inserts_row(tmp_path) -> None:
         assert row["parent_session"] is None
     finally:
         conn.close()
+
+
+def test_post_sessions_creates_session(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.post("/api/sessions", json={
+        "mode": "count",
+        "target": 50,
+        "auto_advance": True,
+        "dedupe_solved": True,
+        "filters": {"rating_min": 1500},
+        "label": "test",
+    })
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert "session_id" in body
+    assert body["pool_size"] == 0
+    assert body["pool_puzzle_ids"] == []
+
+
+def test_post_sessions_validates_mode(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.post("/api/sessions", json={
+        "mode": "invalid_mode",
+        "target": 5,
+        "filters": {},
+    })
+    assert r.status_code == 422
