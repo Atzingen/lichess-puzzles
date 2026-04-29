@@ -4,8 +4,20 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.config import settings
 from app.db import connect
-from app.models import AppendAttemptRequest, CreateSessionRequest, CreateSessionResponse
-from app.sessions import SessionEnded, SessionNotFound, append_attempt, create_session
+from app.models import (
+    AppendAttemptRequest,
+    CreateSessionRequest,
+    CreateSessionResponse,
+    EndSessionRequest,
+    EndSessionResponse,
+)
+from app.sessions import (
+    SessionEnded,
+    SessionNotFound,
+    append_attempt,
+    create_session,
+    end_session,
+)
 
 router = APIRouter(prefix="/api/sessions")
 
@@ -34,3 +46,15 @@ def post_attempt(
     except SessionEnded:
         raise HTTPException(409, "session has ended")
     return Response(status_code=204)
+
+
+@router.post("/{session_id}/end", response_model=EndSessionResponse)
+def post_end(
+    session_id: str, req: EndSessionRequest, conn=Depends(_conn)
+) -> EndSessionResponse:
+    try:
+        return end_session(conn, session_id, req)
+    except SessionNotFound:
+        raise HTTPException(404, "session not found")
+    except SessionEnded:
+        raise HTTPException(409, "session already ended")

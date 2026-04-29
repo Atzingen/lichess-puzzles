@@ -5,7 +5,14 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 
-from app.models import AppendAttemptRequest, CreateSessionRequest, CreateSessionResponse
+from app.models import (
+    AppendAttemptRequest,
+    CreateSessionRequest,
+    CreateSessionResponse,
+    EndSessionRequest,
+    EndSessionResponse,
+    SessionSummary,
+)
 
 
 def _now_iso() -> str:
@@ -84,3 +91,34 @@ def append_attempt(
         ),
     )
     conn.commit()
+
+
+def end_session(
+    conn: sqlite3.Connection, session_id: str, req: EndSessionRequest
+) -> EndSessionResponse:
+    ended_at = _get_session_ended_at(conn, session_id)
+    if ended_at is not None:
+        raise SessionEnded(session_id)
+    new_ended_at = _now_iso()
+    conn.execute(
+        "UPDATE sessions SET ended_at = ?, end_reason = ? WHERE session_id = ?",
+        (new_ended_at, req.end_reason, session_id),
+    )
+    summary_row = conn.execute(
+        """
+        SELECT COUNT(*) AS total,
+               COALESCE(SUM(correct), 0) AS correct,
+               COALESCE(SUM(time_ms), 0) AS total_time_ms
+        FROM attempts WHERE session_id = ?
+        """,
+        (session_id,),
+    ).fetchone()
+    conn.commit()
+    return EndSessionResponse(
+        ended_at=new_ended_at,
+        summary=SessionSummary(
+            total=summary_row["total"],
+            correct=summary_row["correct"],
+            total_time_ms=summary_row["total_time_ms"],
+        ),
+    )

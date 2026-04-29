@@ -116,3 +116,35 @@ def test_post_attempt_404_on_missing_session(app_with_db) -> None:
         "order_idx": 0, "puzzle_id": "00008", "correct": True, "time_ms": 1,
     })
     assert r.status_code == 404
+
+
+def test_post_end_sets_ended_at_and_returns_summary(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid = c.post("/api/sessions", json={
+        "mode": "count", "target": 3, "filters": {}
+    }).json()["session_id"]
+    for i, (pid, ok, t) in enumerate([
+        ("00008", True, 1500), ("0000D", False, 3000), ("00008", True, 800)
+    ]):
+        c.post(f"/api/sessions/{sid}/attempts", json={
+            "order_idx": i, "puzzle_id": pid, "correct": ok, "time_ms": t,
+        })
+
+    r = c.post(f"/api/sessions/{sid}/end", json={"end_reason": "count"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ended_at"]
+    assert body["summary"]["total"] == 3
+    assert body["summary"]["correct"] == 2
+    assert body["summary"]["total_time_ms"] == 5300
+
+
+def test_post_end_409_on_already_ended(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid = c.post("/api/sessions", json={
+        "mode": "count", "target": 1, "filters": {}
+    }).json()["session_id"]
+    r1 = c.post(f"/api/sessions/{sid}/end", json={"end_reason": "manual"})
+    r2 = c.post(f"/api/sessions/{sid}/end", json={"end_reason": "manual"})
+    assert r1.status_code == 200
+    assert r2.status_code == 409
