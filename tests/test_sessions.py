@@ -221,3 +221,38 @@ def test_get_session_404(app_with_db) -> None:
     c = TestClient(app_with_db)
     r = c.get("/api/sessions/00000000-0000-0000-0000-000000000000")
     assert r.status_code == 404
+
+
+def test_create_session_with_parent_returns_failed_puzzles(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    parent = c.post("/api/sessions", json={
+        "mode": "count", "target": 3, "filters": {}
+    }).json()["session_id"]
+    c.post(f"/api/sessions/{parent}/attempts", json={
+        "order_idx": 0, "puzzle_id": "00008", "correct": True, "time_ms": 100,
+    })
+    c.post(f"/api/sessions/{parent}/attempts", json={
+        "order_idx": 1, "puzzle_id": "0000D", "correct": False, "time_ms": 200,
+    })
+    c.post(f"/api/sessions/{parent}/attempts", json={
+        "order_idx": 2, "puzzle_id": "0008Q", "correct": False, "time_ms": 300,
+    })
+    c.post(f"/api/sessions/{parent}/end", json={"end_reason": "count"})
+
+    r = c.post("/api/sessions", json={
+        "mode": "count", "target": 2,
+        "filters": {}, "parent_session": parent,
+    })
+    assert r.status_code == 201
+    body = r.json()
+    assert body["pool_size"] == 2
+    assert sorted(body["pool_puzzle_ids"]) == ["0000D", "0008Q"]
+
+
+def test_create_session_404_on_missing_parent(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.post("/api/sessions", json={
+        "mode": "count", "target": 1, "filters": {},
+        "parent_session": "00000000-0000-0000-0000-000000000000",
+    })
+    assert r.status_code == 404

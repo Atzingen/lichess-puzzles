@@ -23,9 +23,30 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
+class SessionNotFound(Exception):
+    pass
+
+
 def create_session(
     conn: sqlite3.Connection, req: CreateSessionRequest
 ) -> CreateSessionResponse:
+    pool_ids: list[str] = []
+    if req.parent_session is not None:
+        parent = conn.execute(
+            "SELECT 1 FROM sessions WHERE session_id = ?", (req.parent_session,)
+        ).fetchone()
+        if parent is None:
+            raise SessionNotFound(req.parent_session)
+        rows = conn.execute(
+            """
+            SELECT puzzle_id FROM attempts
+            WHERE session_id = ? AND correct = 0
+            ORDER BY order_idx ASC
+            """,
+            (req.parent_session,),
+        ).fetchall()
+        pool_ids = [r["puzzle_id"] for r in rows]
+
     session_id = str(uuid.uuid4())
     started_at = _now_iso()
     conn.execute(
@@ -50,13 +71,9 @@ def create_session(
     return CreateSessionResponse(
         session_id=session_id,
         started_at=started_at,
-        pool_size=0,
-        pool_puzzle_ids=[],
+        pool_size=len(pool_ids),
+        pool_puzzle_ids=pool_ids,
     )
-
-
-class SessionNotFound(Exception):
-    pass
 
 
 class SessionEnded(Exception):

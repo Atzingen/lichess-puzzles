@@ -36,7 +36,10 @@ def _conn():
 
 @router.post("", response_model=CreateSessionResponse, status_code=201)
 def post_session(req: CreateSessionRequest, conn=Depends(_conn)) -> CreateSessionResponse:
-    return create_session(conn, req)
+    try:
+        return create_session(conn, req)
+    except SessionNotFound:
+        raise HTTPException(404, "parent session not found")
 
 
 @router.post("/{session_id}/attempts", status_code=204)
