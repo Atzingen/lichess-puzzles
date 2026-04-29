@@ -148,3 +148,45 @@ def test_post_end_409_on_already_ended(app_with_db) -> None:
     r2 = c.post(f"/api/sessions/{sid}/end", json={"end_reason": "manual"})
     assert r1.status_code == 200
     assert r2.status_code == 409
+
+
+def test_get_sessions_lists_in_reverse_chrono(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid_a = c.post("/api/sessions", json={
+        "mode": "count", "target": 1, "filters": {}, "label": "A"
+    }).json()["session_id"]
+    c.post(f"/api/sessions/{sid_a}/attempts", json={
+        "order_idx": 0, "puzzle_id": "00008", "correct": True, "time_ms": 100,
+    })
+    c.post(f"/api/sessions/{sid_a}/end", json={"end_reason": "count"})
+
+    sid_b = c.post("/api/sessions", json={
+        "mode": "time", "target": 5, "filters": {}, "label": "B"
+    }).json()["session_id"]
+
+    r = c.get("/api/sessions")
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body) == 2
+    # B was created last -> first
+    assert body[0]["session_id"] == sid_b
+    assert body[0]["label"] == "B"
+    assert body[0]["ended_at"] is None
+    assert body[0]["total"] == 0
+    assert body[0]["correct"] == 0
+
+    assert body[1]["session_id"] == sid_a
+    assert body[1]["total"] == 1
+    assert body[1]["correct"] == 1
+    assert body[1]["ended_at"] is not None
+
+
+def test_get_sessions_respects_limit_offset(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    for i in range(3):
+        c.post("/api/sessions", json={
+            "mode": "count", "target": 1, "filters": {}, "label": f"S{i}"
+        })
+    r = c.get("/api/sessions", params={"limit": 2, "offset": 1})
+    assert r.status_code == 200
+    assert len(r.json()) == 2

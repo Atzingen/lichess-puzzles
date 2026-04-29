@@ -10,6 +10,7 @@ from app.models import (
     CreateSessionResponse,
     EndSessionRequest,
     EndSessionResponse,
+    SessionListItem,
 )
 from app.sessions import (
     SessionEnded,
@@ -17,6 +18,7 @@ from app.sessions import (
     append_attempt,
     create_session,
     end_session,
+    list_sessions,
 )
 
 router = APIRouter(prefix="/api/sessions")
@@ -58,3 +60,10 @@ def post_end(
         raise HTTPException(404, "session not found")
     except SessionEnded:
         raise HTTPException(409, "session already ended")
+
+
+@router.get("", response_model=list[SessionListItem])
+def get_sessions(
+    limit: int = 20, offset: int = 0, conn=Depends(_conn)
+) -> list[SessionListItem]:
+    return list_sessions(conn, limit=limit, offset=offset)

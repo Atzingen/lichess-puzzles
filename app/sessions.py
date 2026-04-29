@@ -11,6 +11,7 @@ from app.models import (
     CreateSessionResponse,
     EndSessionRequest,
     EndSessionResponse,
+    SessionListItem,
     SessionSummary,
 )
 
@@ -122,3 +123,38 @@ def end_session(
             total_time_ms=summary_row["total_time_ms"],
         ),
     )
+
+
+def list_sessions(
+    conn: sqlite3.Connection, limit: int = 20, offset: int = 0
+) -> list[SessionListItem]:
+    rows = conn.execute(
+        """
+        SELECT s.session_id, s.started_at, s.ended_at, s.mode, s.target, s.label,
+               COALESCE(a.total, 0)   AS total,
+               COALESCE(a.correct, 0) AS correct
+        FROM sessions s
+        LEFT JOIN (
+            SELECT session_id,
+                   COUNT(*) AS total,
+                   SUM(correct) AS correct
+            FROM attempts GROUP BY session_id
+        ) a ON a.session_id = s.session_id
+        ORDER BY s.started_at DESC
+        LIMIT ? OFFSET ?
+        """,
+        (limit, offset),
+    ).fetchall()
+    return [
+        SessionListItem(
+            session_id=r["session_id"],
+            started_at=r["started_at"],
+            ended_at=r["ended_at"],
+            mode=r["mode"],
+            target=r["target"],
+            total=r["total"],
+            correct=r["correct"],
+            label=r["label"],
+        )
+        for r in rows
+    ]
