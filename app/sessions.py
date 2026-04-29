@@ -7,12 +7,15 @@ from datetime import datetime, timezone
 
 from app.models import (
     AppendAttemptRequest,
+    AttemptDetail,
     CreateSessionRequest,
     CreateSessionResponse,
     EndSessionRequest,
     EndSessionResponse,
+    SessionDetail,
     SessionListItem,
     SessionSummary,
+    SessionWithAttempts,
 )
 
 
@@ -158,3 +161,50 @@ def list_sessions(
         )
         for r in rows
     ]
+
+
+def get_session_with_attempts(
+    conn: sqlite3.Connection, session_id: str
+) -> SessionWithAttempts:
+    s = conn.execute(
+        "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
+    ).fetchone()
+    if s is None:
+        raise SessionNotFound(session_id)
+    rows = conn.execute(
+        """
+        SELECT a.order_idx, a.puzzle_id, a.correct, a.time_ms, a.completed_at,
+               p.rating, p.themes
+        FROM attempts a
+        LEFT JOIN puzzles p ON p.puzzle_id = a.puzzle_id
+        WHERE a.session_id = ?
+        ORDER BY a.order_idx ASC
+        """,
+        (session_id,),
+    ).fetchall()
+    attempts = [
+        AttemptDetail(
+            order_idx=r["order_idx"],
+            puzzle_id=r["puzzle_id"],
+            correct=bool(r["correct"]),
+            time_ms=r["time_ms"],
+            completed_at=r["completed_at"],
+            rating=r["rating"] or 0,
+            themes=(r["themes"] or "").split() if r["themes"] else [],
+        )
+        for r in rows
+    ]
+    detail = SessionDetail(
+        session_id=s["session_id"],
+        started_at=s["started_at"],
+        ended_at=s["ended_at"],
+        end_reason=s["end_reason"],
+        mode=s["mode"],
+        target=s["target"],
+        auto_advance=bool(s["auto_advance"]),
+        dedupe_solved=bool(s["dedupe_solved"]),
+        filters=json.loads(s["filters_json"]),
+        parent_session=s["parent_session"],
+        label=s["label"],
+    )
+    return SessionWithAttempts(session=detail, attempts=attempts)

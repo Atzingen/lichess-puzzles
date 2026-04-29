@@ -190,3 +190,34 @@ def test_get_sessions_respects_limit_offset(app_with_db) -> None:
     r = c.get("/api/sessions", params={"limit": 2, "offset": 1})
     assert r.status_code == 200
     assert len(r.json()) == 2
+
+
+def test_get_session_returns_session_and_joined_attempts(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid = c.post("/api/sessions", json={
+        "mode": "count", "target": 2, "filters": {"rating_min": 1500},
+    }).json()["session_id"]
+    c.post(f"/api/sessions/{sid}/attempts", json={
+        "order_idx": 0, "puzzle_id": "00008", "correct": True, "time_ms": 1200,
+    })
+    c.post(f"/api/sessions/{sid}/attempts", json={
+        "order_idx": 1, "puzzle_id": "0000D", "correct": False, "time_ms": 5400,
+    })
+
+    r = c.get(f"/api/sessions/{sid}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["session"]["session_id"] == sid
+    assert body["session"]["mode"] == "count"
+    assert body["session"]["filters"]["rating_min"] == 1500
+    assert len(body["attempts"]) == 2
+    a0 = body["attempts"][0]
+    assert a0["puzzle_id"] == "00008"
+    assert a0["rating"] == 1812          # joined from puzzles
+    assert "advantage" in a0["themes"]
+
+
+def test_get_session_404(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.get("/api/sessions/00000000-0000-0000-0000-000000000000")
+    assert r.status_code == 404

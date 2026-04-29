@@ -11,6 +11,7 @@ from app.models import (
     EndSessionRequest,
     EndSessionResponse,
     SessionListItem,
+    SessionWithAttempts,
 )
 from app.sessions import (
     SessionEnded,
@@ -18,6 +19,7 @@ from app.sessions import (
     append_attempt,
     create_session,
     end_session,
+    get_session_with_attempts,
     list_sessions,
 )
 
@@ -67,3 +69,11 @@ def get_sessions(
     limit: int = 20, offset: int = 0, conn=Depends(_conn)
 ) -> list[SessionListItem]:
     return list_sessions(conn, limit=limit, offset=offset)
+
+
+@router.get("/{session_id}", response_model=SessionWithAttempts)
+def get_session(session_id: str, conn=Depends(_conn)) -> SessionWithAttempts:
+    try:
+        return get_session_with_attempts(conn, session_id)
+    except SessionNotFound:
+        raise HTTPException(404, "session not found")
