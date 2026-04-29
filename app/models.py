@@ -63,3 +63,82 @@ class Stats(BaseModel):
     rating_max: int
     piece_count_min: int
     piece_count_max: int
+
+
+class CreateSessionRequest(BaseModel):
+    mode: Literal["time", "count", "free"]
+    target: int | None = None
+    auto_advance: bool = True
+    dedupe_solved: bool = True
+    filters: Filters = Field(default_factory=Filters)
+    parent_session: str | None = None
+    label: str | None = None
+
+
+class CreateSessionResponse(BaseModel):
+    session_id: str
+    started_at: str
+    pool_size: int = 0
+    pool_puzzle_ids: list[str] = Field(default_factory=list)
+
+
+class AppendAttemptRequest(BaseModel):
+    order_idx: int
+    puzzle_id: str
+    correct: bool
+    time_ms: int
+
+
+class EndSessionRequest(BaseModel):
+    end_reason: Literal["time", "count", "manual"]
+
+
+class SessionSummary(BaseModel):
+    total: int
+    correct: int
+    total_time_ms: int
+
+
+class EndSessionResponse(BaseModel):
+    ended_at: str
+    summary: SessionSummary
+
+
+class SessionListItem(BaseModel):
+    session_id: str
+    started_at: str
+    ended_at: str | None
+    mode: str
+    target: int | None
+    total: int
+    correct: int
+    label: str | None
+
+
+class AttemptDetail(BaseModel):
+    order_idx: int
+    puzzle_id: str
+    correct: bool
+    time_ms: int
+    completed_at: str
+    rating: int
+    themes: list[str]
+
+
+class SessionDetail(BaseModel):
+    session_id: str
+    started_at: str
+    ended_at: str | None
+    end_reason: str | None
+    mode: str
+    target: int | None
+    auto_advance: bool
+    dedupe_solved: bool
+    filters: dict
+    parent_session: str | None
+    label: str | None
+
+
+class SessionWithAttempts(BaseModel):
+    session: SessionDetail
+    attempts: list[AttemptDetail]
