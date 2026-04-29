@@ -69,3 +69,50 @@ def test_post_sessions_validates_mode(app_with_db) -> None:
         "filters": {},
     })
     assert r.status_code == 422
+
+
+def test_post_attempt_records_row(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid = c.post("/api/sessions", json={
+        "mode": "count", "target": 5, "filters": {}
+    }).json()["session_id"]
+
+    r = c.post(f"/api/sessions/{sid}/attempts", json={
+        "order_idx": 0, "puzzle_id": "00008", "correct": True, "time_ms": 1234,
+    })
+    assert r.status_code == 204
+
+
+def test_post_attempt_is_idempotent_on_same_order_idx(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid = c.post("/api/sessions", json={
+        "mode": "count", "target": 5, "filters": {}
+    }).json()["session_id"]
+    payload = {"order_idx": 0, "puzzle_id": "00008", "correct": False, "time_ms": 100}
+    r1 = c.post(f"/api/sessions/{sid}/attempts", json=payload)
+    payload["correct"] = True
+    payload["time_ms"] = 200
+    r2 = c.post(f"/api/sessions/{sid}/attempts", json=payload)
+    assert r1.status_code == 204 and r2.status_code == 204
+
+    # Second write replaced the first
+    from app.db import connect
+    from app.config import settings
+    conn = connect(settings.db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM attempts WHERE session_id = ?", (sid,)
+        ).fetchall()
+        assert len(rows) == 1
+        assert rows[0]["correct"] == 1
+        assert rows[0]["time_ms"] == 200
+    finally:
+        conn.close()
+
+
+def test_post_attempt_404_on_missing_session(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.post("/api/sessions/00000000-0000-0000-0000-000000000000/attempts", json={
+        "order_idx": 0, "puzzle_id": "00008", "correct": True, "time_ms": 1,
+    })
+    assert r.status_code == 404

@@ -5,7 +5,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 
-from app.models import CreateSessionRequest, CreateSessionResponse
+from app.models import AppendAttemptRequest, CreateSessionRequest, CreateSessionResponse
 
 
 def _now_iso() -> str:
@@ -42,3 +42,45 @@ def create_session(
         pool_size=0,
         pool_puzzle_ids=[],
     )
+
+
+class SessionNotFound(Exception):
+    pass
+
+
+class SessionEnded(Exception):
+    pass
+
+
+def _get_session_ended_at(conn: sqlite3.Connection, session_id: str) -> str | None:
+    row = conn.execute(
+        "SELECT ended_at FROM sessions WHERE session_id = ?", (session_id,)
+    ).fetchone()
+    if row is None:
+        raise SessionNotFound(session_id)
+    return row["ended_at"]
+
+
+def append_attempt(
+    conn: sqlite3.Connection, session_id: str, req: AppendAttemptRequest
+) -> None:
+    ended_at = _get_session_ended_at(conn, session_id)
+    if ended_at is not None:
+        raise SessionEnded(session_id)
+    conn.execute(
+        """
+        INSERT INTO attempts (
+            session_id, order_idx, puzzle_id, correct, time_ms, completed_at
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(session_id, order_idx) DO UPDATE SET
+            puzzle_id = excluded.puzzle_id,
+            correct   = excluded.correct,
+            time_ms   = excluded.time_ms,
+            completed_at = excluded.completed_at
+        """,
+        (
+            session_id, req.order_idx, req.puzzle_id,
+            1 if req.correct else 0, req.time_ms, _now_iso(),
+        ),
+    )
+    conn.commit()
