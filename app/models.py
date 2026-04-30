@@ -128,6 +128,7 @@ class AttemptDetail(BaseModel):
     completed_at: str
     rating: int
     themes: list[str]
+    game_url: str | None = None
 
 
 class SessionDetail(BaseModel):

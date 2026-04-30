@@ -192,7 +192,7 @@ def get_session_with_attempts(
     rows = conn.execute(
         """
         SELECT a.order_idx, a.puzzle_id, a.correct, a.time_ms, a.completed_at,
-               p.rating, p.themes
+               p.rating, p.themes, p.game_url
         FROM attempts a
         LEFT JOIN puzzles p ON p.puzzle_id = a.puzzle_id
         WHERE a.session_id = ?
@@ -209,6 +209,7 @@ def get_session_with_attempts(
             completed_at=r["completed_at"],
             rating=r["rating"] or 0,
             themes=(r["themes"] or "").split() if r["themes"] else [],
+            game_url=r["game_url"],
         )
         for r in rows
     ]

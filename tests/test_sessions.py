@@ -310,3 +310,19 @@ def test_get_session_returns_attempt_completed_at(app_with_db) -> None:
     assert a["completed_at"] and "T" in a["completed_at"]
     assert a["time_ms"] == 1234
     assert a["rating"] >= 0
+
+
+def test_get_session_includes_game_url_on_attempts(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid = c.post("/api/sessions", json={
+        "mode": "count", "target": 5, "filters": {}
+    }).json()["session_id"]
+    c.post(f"/api/sessions/{sid}/attempts", json={
+        "order_idx": 0, "puzzle_id": "00008", "correct": True, "time_ms": 100,
+    })
+    detail = c.get(f"/api/sessions/{sid}").json()
+    assert "attempts" in detail
+    assert len(detail["attempts"]) == 1
+    a = detail["attempts"][0]
+    assert "game_url" in a
+    assert a["game_url"] is None or a["game_url"].startswith("https://")
