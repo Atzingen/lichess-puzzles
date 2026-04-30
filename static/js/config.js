@@ -1,5 +1,5 @@
 import { initFilterUI, readFilters, updateCounter, applyPreset } from './filters.js';
-import { fetchBatch, createSession, listSessions } from './api.js';
+import { fetchBatch, createSession, listSessions, getSession } from './api.js';
 
 const POOL_LIMIT = 500;
 const STORAGE_KEY = (sessionId) => `pool:${sessionId}`;
@@ -167,17 +167,25 @@ async function loadSessions() {
     ul.innerHTML = '';
     for (const s of list) {
       const li = document.createElement('li');
+      const arrowHref = s.ended_at
+        ? `/play/${s.session_id}/stats`
+        : `/play/${s.session_id}`;
+      const arrowTitle = s.ended_at ? 'Ver estatísticas' : 'Reabrir';
       li.innerHTML = `
         <span class="when">${formatStarted(s.started_at)}</span>
         <span class="target">${formatTarget(s.mode, s.target)}</span>
         <span class="label">${escapeHtml(s.label || '')}</span>
         <span class="score">${s.correct}/${s.total}</span>
         <span class="actions">
-          <a href="/play/${s.session_id}" title="Reabrir">→</a>
+          <a href="${arrowHref}" title="${arrowTitle}">→</a>
+          <button class="ghost" data-redo="${s.session_id}" title="Nova sessão com mesmos filtros">↻</button>
         </span>
       `;
       ul.append(li);
     }
+    ul.querySelectorAll('button[data-redo]').forEach(btn =>
+      btn.addEventListener('click', () => onRedoSession(btn.dataset.redo))
+    );
   } catch (e) {
     ul.innerHTML = `<li class="empty">Erro ao carregar: ${e.message}</li>`;
   }
@@ -200,6 +208,34 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
+}
+
+async function onRedoSession(parentSessionId) {
+  try {
+    const det = await getSession(parentSessionId);
+    const s = det.session;
+    const pool = await fetchBatch(s.filters || {}, POOL_LIMIT);
+    if (!pool || pool.count === 0) {
+      alert('Pool vazia para os filtros desta sessão.');
+      return;
+    }
+    let target = s.target;
+    if (s.mode === 'count' && target && target > pool.count) target = pool.count;
+    const created = await createSession({
+      mode: s.mode, target,
+      auto_advance: s.auto_advance,
+      dedupe_solved: s.dedupe_solved,
+      filters: s.filters || {},
+      parent_session: null,
+      label: s.label,
+    });
+    sessionStorage.setItem(`pool:${created.session_id}`, JSON.stringify({
+      puzzle_ids: pool.puzzles.map(p => p.puzzle_id),
+    }));
+    location.href = `/play/${created.session_id}`;
+  } catch (e) {
+    alert('Falha ao recriar sessão: ' + e.message);
+  }
 }
 
 boot().catch(e => {

@@ -116,3 +116,10 @@ header nav a {
   padding: 0 .35rem;
 }
 .sessions-panel .actions a:hover { text-decoration: underline; }
+.sessions-panel .actions { display: inline-flex; gap: 0.4rem; align-items: center; }
+button.ghost {
+  background: transparent; border: 1px solid #555; cursor: pointer;
+  padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.95rem; line-height: 1;
+  color: #6af;
+}
+button.ghost:hover { background: #2a2a2a; color: #9cf; }

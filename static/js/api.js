@@ -63,3 +63,9 @@ export async function listSessions(limit = 20) {
   if (!r.ok) throw new Error('listSessions ' + r.status);
   return r.json();
 }
+
+export async function getSession(sessionId) {
+  const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`);
+  if (!r.ok) throw new Error('getSession ' + r.status);
+  return r.json();
+}
