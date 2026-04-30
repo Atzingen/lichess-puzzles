@@ -57,6 +57,11 @@ class RandomResponse(BaseModel):
     puzzle: Puzzle | None
 
 
+class BatchResponse(BaseModel):
+    count: int
+    puzzles: list[Puzzle]
+
+
 class Stats(BaseModel):
     total_puzzles: int
     rating_min: int

@@ -43,3 +43,28 @@ def test_get_by_id_404(app_with_db) -> None:
     c = TestClient(app_with_db)
     r = c.get("/api/puzzles/NOPE")
     assert r.status_code == 404
+
+
+def test_batch_returns_at_most_limit_and_filters_rating(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.get("/api/puzzles/batch?rating_min=1500&rating_max=2000&limit=3")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] == len(body["puzzles"]) <= 3
+    for p in body["puzzles"]:
+        assert 1500 <= p["rating"] <= 2000
+
+
+def test_batch_default_limit_caps_at_available(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.get("/api/puzzles/batch")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] == len(body["puzzles"])
+    assert body["count"] <= 500
+
+
+def test_batch_rejects_zero_limit(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.get("/api/puzzles/batch?limit=0")
+    assert r.status_code == 422

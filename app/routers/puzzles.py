@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.config import settings
 from app.db import connect
-from app.models import Filters, Puzzle, SearchResponse, RandomResponse
-from app.queries import count_puzzles, random_puzzle, sample_ids, get_by_id
+from app.models import Filters, Puzzle, SearchResponse, RandomResponse, BatchResponse
+from app.queries import count_puzzles, random_puzzle, random_batch, sample_ids, get_by_id
 
 router = APIRouter(prefix="/api/puzzles")
 
@@ -59,6 +59,16 @@ def random_(filters: Filters = Depends(_filters_from_query), conn=Depends(_conn)
     if n == 0:
         return RandomResponse(count=0, puzzle=None)
     return RandomResponse(count=n, puzzle=random_puzzle(conn, filters))
+
+
+@router.get("/batch", response_model=BatchResponse)
+def batch(
+    filters: Filters = Depends(_filters_from_query),
+    limit: int = Query(500, gt=0, le=2000),
+    conn=Depends(_conn),
+) -> BatchResponse:
+    puzzles = random_batch(conn, filters, limit=limit)
+    return BatchResponse(count=len(puzzles), puzzles=puzzles)
 
 
 @router.get("/{puzzle_id}", response_model=Puzzle)
