@@ -247,6 +247,12 @@ function continueAfterCorrect(moves) {
 function registerCorrectAndAdvance() {
   recordAttempt(true);
   setFlash('✓', 'ok');
+  if (isFreeManual()) {
+    ui.state = 'OUTCOME_FREE';
+    ui.variantCursor = ui.variantHistory.length - 1;
+    setSidePanel(true, { canRetry: false });
+    return;
+  }
   ui.state = 'OUTCOME';
   setTimeout(loadNextPuzzle, 350);
 }
@@ -257,6 +263,12 @@ function registerWrongAndAdvance() {
   const wrap = document.querySelector('.play-board-wrap');
   wrap.classList.add('shake');
   setTimeout(() => wrap.classList.remove('shake'), 250);
+  if (isFreeManual()) {
+    ui.state = 'OUTCOME_FREE';
+    ui.variantCursor = 1;
+    setSidePanel(true, { canRetry: true });
+    return;
+  }
   ui.state = 'OUTCOME';
   setTimeout(loadNextPuzzle, 600);
 }
