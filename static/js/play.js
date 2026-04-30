@@ -1,0 +1,204 @@
+import { Chessground } from 'chessground';
+import { Chess } from 'chess.js';
+
+const STORAGE_KEY = (sessionId) => `pool:${sessionId}`;
+
+const session = {
+  id: null,
+  meta: null,
+  pool: [],
+  poolIdx: 0,
+  attempts: [],
+  ended: false,
+};
+
+const ui = {
+  board: null,
+  chess: null,
+  puzzle: null,
+  moveIndex: 0,
+  exerciseStartedAt: 0,
+  state: 'IDLE',
+};
+
+async function boot() {
+  session.id = location.pathname.split('/').pop();
+
+  const meta = await fetchSession(session.id);
+  const stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY(session.id)) || 'null');
+
+  session.meta = meta.session;
+  if (session.meta.ended_at) {
+    return showOverlay('Esta sessão já está encerrada.', 'Voltar', goExplore);
+  }
+  if (!stored || !Array.isArray(stored.puzzle_ids) || stored.puzzle_ids.length === 0) {
+    return showOverlay(
+      'Pool não encontrada para esta sessão. Volte e clique em "Buscar pool" novamente.',
+      'Voltar', () => location.href = '/'
+    );
+  }
+  session.pool = stored.puzzle_ids;
+
+  ui.board = Chessground(document.getElementById('board'), {
+    movable: { free: false, color: null, events: { after: onUserMove } },
+    draggable: { showGhost: true },
+  });
+
+  document.getElementById('btn-quit').addEventListener('click', onQuit);
+  renderCounter();
+  renderClock(0);
+  await loadNextPuzzle();
+}
+
+async function fetchSession(id) {
+  const r = await fetch(`/api/sessions/${id}`);
+  if (!r.ok) throw new Error('session ' + r.status);
+  return r.json();
+}
+
+async function loadPuzzleById(id) {
+  const r = await fetch(`/api/puzzles/${id}`);
+  if (!r.ok) throw new Error('puzzle ' + r.status);
+  return r.json();
+}
+
+async function loadNextPuzzle() {
+  if (session.poolIdx >= session.pool.length) {
+    return endSession('count');
+  }
+  const id = session.pool[session.poolIdx++];
+  ui.puzzle = await loadPuzzleById(id);
+  ui.chess = new Chess(ui.puzzle.fen);
+  ui.moveIndex = 0;
+  startPreview();
+}
+
+function startPreview() {
+  const oppColor = ui.puzzle.side_to_move === 'w' ? 'white' : 'black';
+  const userColor = oppColor === 'white' ? 'black' : 'white';
+  ui.board.set({
+    fen: ui.chess.fen(),
+    turnColor: oppColor,
+    orientation: userColor,
+    movable: { color: null, dests: new Map() },
+    lastMove: undefined,
+    drawable: { autoShapes: [] },
+  });
+  ui.state = 'PREVIEW';
+  setFlash('');
+  setTimeout(startOpponentMove, 400);
+}
+
+function startOpponentMove() {
+  const moves = ui.puzzle.moves.split(' ');
+  const uci = moves[0];
+  ui.chess.move({ from: uci.slice(0,2), to: uci.slice(2,4), promotion: uci[4] });
+  ui.moveIndex = 1;
+  ui.board.set({
+    fen: ui.chess.fen(),
+    lastMove: [uci.slice(0,2), uci.slice(2,4)],
+    movable: { color: null, dests: new Map() },
+  });
+  ui.state = 'OPPONENT_MOVE';
+  setTimeout(armUserTurn, 250);
+}
+
+function armUserTurn() {
+  const userColor = ui.puzzle.side_to_move === 'w' ? 'black' : 'white';
+  ui.board.set({
+    turnColor: userColor,
+    movable: {
+      color: userColor,
+      free: false,
+      dests: legalDests(ui.chess),
+      events: { after: onUserMove },
+    },
+  });
+  ui.state = 'USER_TURN';
+  ui.exerciseStartedAt = performance.now();
+}
+
+function onUserMove(orig, dest) {
+  // Stub — real validation lands in Task 9.
+  ui.chess.undo();
+  ui.board.set({ fen: ui.chess.fen() });
+}
+
+function legalDests(chess) {
+  const dests = new Map();
+  for (const f of 'abcdefgh') for (const r of '12345678') {
+    const sq = f + r;
+    const moves = chess.moves({ square: sq, verbose: true });
+    if (moves.length) dests.set(sq, moves.map(m => m.to));
+  }
+  return dests;
+}
+
+function setFlash(msg, kind) {
+  const el = document.getElementById('flash');
+  el.textContent = msg;
+  el.className = 'play-flash ' + (kind || '');
+}
+
+function renderCounter() {
+  const total = session.attempts.length;
+  const correct = session.attempts.filter(a => a.correct).length;
+  let text;
+  if (session.meta.mode === 'count') {
+    text = `${correct} / ${session.meta.target ?? '?'}`;
+  } else {
+    const wrong = total - correct;
+    text = `✓ ${correct}  ✗ ${wrong}`;
+  }
+  document.getElementById('counter').textContent = text;
+}
+
+function renderClock(elapsedMs) {
+  const el = document.getElementById('clock');
+  let secs;
+  if (session.meta.mode === 'time') {
+    const remaining = Math.max(0, (session.meta.target * 60_000) - elapsedMs);
+    secs = Math.ceil(remaining / 1000);
+    el.classList.toggle('warning', secs <= 30 && secs > 10);
+    el.classList.toggle('urgent', secs <= 10);
+  } else {
+    secs = Math.floor(elapsedMs / 1000);
+  }
+  const m = Math.floor(secs / 60).toString().padStart(2, '0');
+  const s = (secs % 60).toString().padStart(2, '0');
+  el.textContent = `${m}:${s}`;
+}
+
+function showOverlay(msg, actionLabel, onAction) {
+  document.getElementById('overlay-msg').textContent = msg;
+  const btn = document.getElementById('overlay-action');
+  btn.textContent = actionLabel;
+  btn.onclick = onAction;
+  document.getElementById('overlay').hidden = false;
+}
+
+function goExplore() {
+  location.href = '/explore?ended=' + encodeURIComponent(session.id);
+}
+
+async function onQuit() {
+  if (!confirm('Encerrar a sessão agora?')) return;
+  await endSession('manual');
+}
+
+async function endSession(reason) {
+  if (session.ended) return;
+  session.ended = true;
+  try {
+    await fetch(`/api/sessions/${session.id}/end`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ end_reason: reason }),
+    });
+  } catch { /* server-side guarantee not critical for redirect */ }
+  goExplore();
+}
+
+boot().catch(e => {
+  showOverlay('Erro ao iniciar a sessão: ' + (e.message || e), 'Voltar', goExplore);
+});
