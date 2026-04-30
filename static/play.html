@@ -29,6 +29,23 @@
   <main class="play-board-wrap">
     <div id="board" class="play-board"></div>
     <div id="flash" class="play-flash" aria-live="polite"></div>
+    <aside class="play-side" id="side-panel" hidden>
+      <button class="primary" id="btn-next-free">Próximo exercício</button>
+      <button class="secondary" id="btn-retry" hidden>Tentar de novo</button>
+      <div class="play-side-block">
+        <strong>Variante</strong>
+        <div class="variant-nav">
+          <button data-variant="start" title="Início">⏮</button>
+          <button data-variant="prev"  title="Anterior">◀</button>
+          <button data-variant="next"  title="Próximo">▶</button>
+          <button data-variant="end"   title="Fim">⏭</button>
+        </div>
+        <div class="variant-pos" id="variant-pos">0 / 0</div>
+      </div>
+      <label class="play-side-block">
+        <input type="checkbox" id="sandbox"> Sandbox (mover livremente)
+      </label>
+    </aside>
   </main>
 
   <div class="play-overlay" id="overlay" hidden>
