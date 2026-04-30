@@ -19,6 +19,11 @@ const ui = {
   moveIndex: 0,
   exerciseStartedAt: 0,
   state: 'IDLE',
+  variantHistory: [],
+  variantCursor: 0,
+  postOpponentFen: null,
+  postOpponentLastMove: null,
+  sandboxOn: false,
 };
 
 const clock = { startedAt: 0, raf: 0 };
@@ -82,16 +87,51 @@ async function loadPuzzleById(id) {
 }
 
 async function loadNextPuzzle() {
+  setSidePanel(false);
+  const sb = document.getElementById('sandbox');
+  if (sb) sb.checked = false;
   while (session.poolIdx < session.pool.length) {
     const id = session.pool[session.poolIdx++];
     if (session.meta.dedupe_solved && solvedThisSession.has(id)) continue;
     ui.puzzle = await loadPuzzleById(id);
     ui.chess = new Chess(ui.puzzle.fen);
     ui.moveIndex = 0;
+    ui.variantHistory = buildVariantHistory(ui.puzzle.fen, ui.puzzle.moves);
+    ui.variantCursor = 0;
+    ui.postOpponentFen = null;
+    ui.postOpponentLastMove = null;
+    ui.sandboxOn = false;
     startPreview();
     return;
   }
-  endSession('count');
+  if (session.meta.mode !== 'free') endSession('count');
+}
+
+function setSidePanel(visible, opts = {}) {
+  const panel = document.getElementById('side-panel');
+  const wrap  = document.querySelector('.play-board-wrap');
+  if (!panel || !wrap) return;
+  panel.hidden = !visible;
+  wrap.classList.toggle('with-side', visible);
+  const retryBtn = document.getElementById('btn-retry');
+  if (retryBtn) retryBtn.hidden = !visible || !opts.canRetry;
+  const pos = document.getElementById('variant-pos');
+  if (pos) pos.textContent = `${ui.variantCursor} / ${Math.max(0, ui.variantHistory.length - 1)}`;
+}
+
+function isFreeManual() {
+  return session.meta && session.meta.mode === 'free' && !session.meta.auto_advance;
+}
+
+function buildVariantHistory(startFen, movesStr) {
+  const tmp = new Chess(startFen);
+  const out = [{ fen: tmp.fen(), lastMove: null }];
+  for (const uci of movesStr.split(' ').filter(Boolean)) {
+    const move = tmp.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
+    if (!move) break;
+    out.push({ fen: tmp.fen(), lastMove: [uci.slice(0, 2), uci.slice(2, 4)] });
+  }
+  return out;
 }
 
 function startPreview() {
@@ -115,6 +155,8 @@ function startOpponentMove() {
   const uci = moves[0];
   ui.chess.move({ from: uci.slice(0,2), to: uci.slice(2,4), promotion: uci[4] });
   ui.moveIndex = 1;
+  ui.postOpponentFen = ui.chess.fen();
+  ui.postOpponentLastMove = [uci.slice(0,2), uci.slice(2,4)];
   ui.board.set({
     fen: ui.chess.fen(),
     lastMove: [uci.slice(0,2), uci.slice(2,4)],
