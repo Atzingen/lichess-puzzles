@@ -119,9 +119,109 @@ function armUserTurn() {
 }
 
 function onUserMove(orig, dest) {
-  // Stub — real validation lands in Task 9.
+  if (ui.state !== 'USER_TURN') return;
+
+  const moves = ui.puzzle.moves.split(' ');
+  const expectedUci = moves[ui.moveIndex];
+  const isLastMove = ui.moveIndex === moves.length - 1;
+  const isMatePuzzle = (ui.puzzle.themes || []).some(t => t.startsWith('mate'));
+  const expectedPromo = expectedUci.length === 5 ? expectedUci[4] : undefined;
+
+  const played = ui.chess.move({ from: orig, to: dest, promotion: expectedPromo });
+  if (!played) {
+    return registerWrongAndAdvance();
+  }
+  const userUci = played.from + played.to + (played.promotion || '');
+
+  if (userUci === expectedUci) {
+    return continueAfterCorrect(moves);
+  }
+  if (isLastMove && isMatePuzzle && ui.chess.isCheckmate()) {
+    return continueAfterCorrect(moves);
+  }
+
   ui.chess.undo();
-  ui.board.set({ fen: ui.chess.fen() });
+  registerWrongAndAdvance();
+}
+
+function continueAfterCorrect(moves) {
+  ui.moveIndex += 1;
+  ui.board.set({
+    fen: ui.chess.fen(),
+    movable: { color: null, dests: new Map() },
+    turnColor: ui.chess.turn() === 'w' ? 'white' : 'black',
+  });
+  ui.state = 'OPPONENT_REPLY';
+
+  if (ui.moveIndex >= moves.length) {
+    return registerCorrectAndAdvance();
+  }
+
+  setTimeout(() => {
+    const reply = moves[ui.moveIndex];
+    ui.chess.move({ from: reply.slice(0,2), to: reply.slice(2,4), promotion: reply[4] });
+    ui.moveIndex += 1;
+    ui.board.set({
+      fen: ui.chess.fen(),
+      lastMove: [reply.slice(0,2), reply.slice(2,4)],
+    });
+    if (ui.moveIndex >= moves.length) {
+      registerCorrectAndAdvance();
+    } else {
+      const userColor = ui.puzzle.side_to_move === 'w' ? 'black' : 'white';
+      ui.board.set({
+        turnColor: userColor,
+        movable: {
+          color: userColor, free: false,
+          dests: legalDests(ui.chess), events: { after: onUserMove },
+        },
+      });
+      ui.state = 'USER_TURN';
+    }
+  }, 250);
+}
+
+function registerCorrectAndAdvance() {
+  recordAttempt(true);
+  setFlash('✓', 'ok');
+  ui.state = 'OUTCOME';
+  setTimeout(loadNextPuzzle, 350);
+}
+
+function registerWrongAndAdvance() {
+  recordAttempt(false);
+  setFlash('✗', 'err');
+  const wrap = document.querySelector('.play-board-wrap');
+  wrap.classList.add('shake');
+  setTimeout(() => wrap.classList.remove('shake'), 250);
+  ui.state = 'OUTCOME';
+  setTimeout(loadNextPuzzle, 600);
+}
+
+function recordAttempt(correct) {
+  const attempt = {
+    order_idx: session.attempts.length,
+    puzzle_id: ui.puzzle.puzzle_id,
+    correct,
+    time_ms: Math.round(performance.now() - ui.exerciseStartedAt),
+  };
+  session.attempts.push(attempt);
+  postAttempt(attempt);
+  renderCounter();
+}
+
+function postAttempt(attempt, retriesLeft = 3) {
+  fetch(`/api/sessions/${session.id}/attempts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(attempt),
+  }).then(r => {
+    if (!r.ok && r.status !== 409 && retriesLeft > 0) {
+      setTimeout(() => postAttempt(attempt, retriesLeft - 1), 1500);
+    }
+  }).catch(() => {
+    if (retriesLeft > 0) setTimeout(() => postAttempt(attempt, retriesLeft - 1), 1500);
+  });
 }
 
 function legalDests(chess) {
