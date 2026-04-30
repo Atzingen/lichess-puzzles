@@ -3,28 +3,130 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>lichess-puzzles — sessão</title>
+<title>lichess-puzzles — configurar sessão</title>
 <link rel="stylesheet" href="/static/css/styles.css"/>
 <link rel="stylesheet" href="/static/css/config.css"/>
 </head>
 <body>
 <header>
   <h1>lichess-puzzles</h1>
-  <nav><a href="/explore">/explore</a></nav>
+  <nav><a href="/explore">/explore ↗</a></nav>
 </header>
 
 <main class="config-main">
-  <section class="panel" id="phase1-note">
-    <p><strong>Fase 1.</strong> O treinador de sessão será conectado na Fase 2.
-    Por enquanto, esta página apenas lista as sessões já registradas no banco.</p>
+  <section class="panel filters-panel" id="filters">
+    <h2>Filtros</h2>
+    <div class="preset-row" id="presets"></div>
+
+    <details open><summary>Básico</summary>
+      <div class="row"><label>Rating</label>
+        <input id="rating_min" type="number" placeholder="min">
+        <input id="rating_max" type="number" placeholder="max"></div>
+      <div class="row"><label>Nº peças</label>
+        <input id="piece_count_min" type="number" placeholder="min">
+        <input id="piece_count_max" type="number" placeholder="max"></div>
+      <div class="row"><label>Nº do lance</label>
+        <input id="move_number_min" type="number" placeholder="min">
+        <input id="move_number_max" type="number" placeholder="max"></div>
+      <div class="row"><label>Popularity ≥</label>
+        <input id="popularity_min" type="number"></div>
+      <div class="row"><label>NbPlays ≥</label>
+        <input id="nb_plays_min" type="number"></div>
+    </details>
+
+    <details><summary>Derivados</summary>
+      <div class="row"><label>Lado a mover</label>
+        <select id="side_to_move"><option value="">—</option>
+          <option value="w">Brancas</option><option value="b">Pretas</option></select></div>
+      <div class="row"><label>Fase</label>
+        <select id="phase"><option value="">—</option>
+          <option value="opening">Abertura</option>
+          <option value="middlegame">Meio-jogo</option>
+          <option value="endgame">Final</option></select></div>
+      <div class="row"><label>Material (B−P)</label>
+        <input id="material_balance_min" type="number" placeholder="min">
+        <input id="material_balance_max" type="number" placeholder="max"></div>
+      <div class="row"><label>Promoção</label>
+        <select id="has_promoted"><option value="">—</option>
+          <option value="true">sim</option><option value="false">não</option></select></div>
+      <div class="row"><label>En passant</label>
+        <select id="has_en_passant"><option value="">—</option>
+          <option value="true">sim</option><option value="false">não</option></select></div>
+      <div class="row"><label>Roque disponível</label>
+        <select id="has_castling"><option value="">—</option>
+          <option value="true">sim</option><option value="false">não</option></select></div>
+    </details>
+
+    <details><summary>Themes (qualquer um)</summary>
+      <div id="themes_any" class="checkbox-list"></div>
+    </details>
+    <details><summary>Themes (todos)</summary>
+      <div id="themes_all" class="checkbox-list"></div>
+    </details>
+    <details><summary>Aberturas</summary>
+      <div id="opening_tags_any" class="checkbox-list"></div>
+    </details>
+
+    <div class="filters-counter">
+      Encontrados: <span id="counter">—</span>
+    </div>
   </section>
 
-  <section class="panel">
+  <section class="panel session-panel">
+    <h2>Sessão</h2>
+
+    <fieldset class="mode">
+      <legend>Modo</legend>
+      <label><input type="radio" name="mode" value="time" checked> Por tempo</label>
+      <div class="mode-options" id="opts-time">
+        <label><input type="radio" name="time-target" value="3"> 3 min</label>
+        <label><input type="radio" name="time-target" value="5" checked> 5 min</label>
+        <label><input type="radio" name="time-target" value="10"> 10 min</label>
+        <label><input type="radio" name="time-target" value="custom"> outro
+          <input type="number" id="time-custom" min="1" max="120" placeholder="min"></label>
+      </div>
+      <label><input type="radio" name="mode" value="count"> Por quantidade</label>
+      <div class="mode-options" id="opts-count">
+        <label><input type="radio" name="count-target" value="50"> 50</label>
+        <label><input type="radio" name="count-target" value="100" checked> 100</label>
+        <label><input type="radio" name="count-target" value="200"> 200</label>
+        <label><input type="radio" name="count-target" value="500"> 500</label>
+        <label><input type="radio" name="count-target" value="custom"> outro
+          <input type="number" id="count-custom" min="1" max="9999" placeholder="puzzles"></label>
+      </div>
+      <label><input type="radio" name="mode" value="free" disabled> Modo livre <em>(Fase 4)</em></label>
+    </fieldset>
+
+    <fieldset class="extras">
+      <label><input type="checkbox" id="dedupe_solved" checked> Não repetir resolvidos nesta sessão</label>
+      <label><input type="checkbox" id="error_sound"> Som no erro <em>(Fase 5)</em></label>
+      <label>Rótulo (opcional)
+        <input type="text" id="label" maxlength="80" placeholder="ex.: Mate em 2"></label>
+    </fieldset>
+
+    <div class="pool-status">
+      <button class="secondary" id="btn-pool">Buscar pool</button>
+      <span id="pool-info">—</span>
+    </div>
+
+    <button class="primary" id="btn-start" disabled>Iniciar sessão</button>
+    <div id="start-error" class="status-err" hidden></div>
+  </section>
+
+  <section class="panel sessions-panel">
     <h2>Sessões anteriores</h2>
     <ul id="sessions-list"><li class="empty">Carregando…</li></ul>
   </section>
 </main>
 
+<script type="importmap">
+{
+  "imports": {
+    "chessground": "https://esm.sh/chessground@9.1.1",
+    "chess.js":    "https://esm.sh/chess.js@1.0.0"
+  }
+}
+</script>
 <script type="module" src="/static/js/config.js"></script>
 </body>
 </html>
