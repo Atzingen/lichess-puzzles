@@ -291,3 +291,22 @@ def test_create_session_respects_auto_advance_in_free_mode(app_with_db) -> None:
         assert row["auto_advance"] == 0, "free mode must respect client-supplied auto_advance"
     finally:
         conn.close()
+
+
+def test_get_session_returns_attempt_completed_at(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    r = c.post("/api/sessions", json={
+        "mode": "count", "target": 1,
+        "auto_advance": True, "dedupe_solved": False,
+        "filters": {}, "parent_session": None, "label": "regression",
+    })
+    sid = r.json()["session_id"]
+    c.post(f"/api/sessions/{sid}/attempts", json={
+        "order_idx": 0, "puzzle_id": "00008", "correct": True, "time_ms": 1234,
+    })
+    body = c.get(f"/api/sessions/{sid}").json()
+    assert len(body["attempts"]) == 1
+    a = body["attempts"][0]
+    assert a["completed_at"] and "T" in a["completed_at"]
+    assert a["time_ms"] == 1234
+    assert a["rating"] >= 0
