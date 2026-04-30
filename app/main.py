@@ -55,6 +55,13 @@ def explore() -> HTMLResponse:
     return HTMLResponse((STATIC_DIR / "explore.html").read_text(encoding="utf-8"))
 
 
+@app.get("/play/{session_id}", response_class=HTMLResponse)
+def play(session_id: str) -> HTMLResponse:
+    if not _db_exists():
+        return HTMLResponse(MAINTENANCE_HTML)
+    return HTMLResponse((STATIC_DIR / "play.html").read_text(encoding="utf-8"))
+
+
 @app.get("/healthz")
 def healthz() -> dict[str, bool]:
     return {"ok": True, "db": _db_exists()}
