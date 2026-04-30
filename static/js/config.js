@@ -11,6 +11,7 @@ const state = {
 
 async function boot() {
   await initFilterUI(onFiltersChanged);
+  await maybePrefillFromQuery();
 
   const presets = await fetch('/static/presets.json').then(r => r.json());
   const row = document.getElementById('presets');
@@ -208,6 +209,40 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
+}
+
+async function maybePrefillFromQuery() {
+  const params = new URLSearchParams(location.search);
+  const sid = params.get('prefill');
+  if (!sid) return;
+  try {
+    const det = await getSession(sid);
+    const s = det.session;
+    applyPreset(s.filters || {});
+    const modeRadio = document.querySelector(`input[name=mode][value="${s.mode}"]`);
+    if (modeRadio && !modeRadio.disabled) modeRadio.checked = true;
+    if (s.mode === 'time' || s.mode === 'count') {
+      const groupName = s.mode === 'time' ? 'time-target' : 'count-target';
+      const customId  = s.mode === 'time' ? 'time-custom' : 'count-custom';
+      const presetVals = s.mode === 'time' ? ['3','5','10'] : ['50','100','200','500'];
+      const tgt = String(s.target ?? '');
+      if (presetVals.includes(tgt)) {
+        const r = document.querySelector(`input[name=${groupName}][value="${tgt}"]`);
+        if (r) r.checked = true;
+      } else if (s.target) {
+        const r = document.querySelector(`input[name=${groupName}][value="custom"]`);
+        if (r) r.checked = true;
+        const inp = document.getElementById(customId);
+        if (inp) inp.value = s.target;
+      }
+    }
+    const dedupeEl = document.getElementById('dedupe_solved');
+    if (dedupeEl) dedupeEl.checked = !!s.dedupe_solved;
+    const labelEl = document.getElementById('label');
+    if (labelEl && s.label) labelEl.value = s.label;
+  } catch (e) {
+    console.warn('prefill failed', e);
+  }
 }
 
 async function onRedoSession(parentSessionId) {
