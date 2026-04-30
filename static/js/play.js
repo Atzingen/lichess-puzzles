@@ -21,6 +21,9 @@ const ui = {
   state: 'IDLE',
 };
 
+const clock = { startedAt: 0, raf: 0 };
+const solvedThisSession = new Set();
+
 async function boot() {
   session.id = location.pathname.split('/').pop();
 
@@ -46,8 +49,24 @@ async function boot() {
 
   document.getElementById('btn-quit').addEventListener('click', onQuit);
   renderCounter();
-  renderClock(0);
+  startClockLoop();
   await loadNextPuzzle();
+}
+
+function startClockLoop() {
+  clock.startedAt = performance.now();
+  const tick = () => {
+    if (session.ended) return;
+    const elapsed = performance.now() - clock.startedAt;
+    renderClock(elapsed);
+    if (session.meta.mode === 'time' &&
+        elapsed >= session.meta.target * 60_000) {
+      endSession('time');
+      return;
+    }
+    clock.raf = requestAnimationFrame(tick);
+  };
+  clock.raf = requestAnimationFrame(tick);
 }
 
 async function fetchSession(id) {
@@ -63,14 +82,16 @@ async function loadPuzzleById(id) {
 }
 
 async function loadNextPuzzle() {
-  if (session.poolIdx >= session.pool.length) {
-    return endSession('count');
+  while (session.poolIdx < session.pool.length) {
+    const id = session.pool[session.poolIdx++];
+    if (session.meta.dedupe_solved && solvedThisSession.has(id)) continue;
+    ui.puzzle = await loadPuzzleById(id);
+    ui.chess = new Chess(ui.puzzle.fen);
+    ui.moveIndex = 0;
+    startPreview();
+    return;
   }
-  const id = session.pool[session.poolIdx++];
-  ui.puzzle = await loadPuzzleById(id);
-  ui.chess = new Chess(ui.puzzle.fen);
-  ui.moveIndex = 0;
-  startPreview();
+  endSession('count');
 }
 
 function startPreview() {
@@ -206,8 +227,15 @@ function recordAttempt(correct) {
     time_ms: Math.round(performance.now() - ui.exerciseStartedAt),
   };
   session.attempts.push(attempt);
+  if (correct) solvedThisSession.add(attempt.puzzle_id);
   postAttempt(attempt);
   renderCounter();
+  if (session.meta.mode === 'count') {
+    const correctCount = session.attempts.filter(a => a.correct).length;
+    if (session.meta.target !== null && correctCount >= session.meta.target) {
+      setTimeout(() => endSession('count'), 400);
+    }
+  }
 }
 
 function postAttempt(attempt, retriesLeft = 3) {
@@ -289,6 +317,7 @@ async function onQuit() {
 async function endSession(reason) {
   if (session.ended) return;
   session.ended = true;
+  if (clock.raf) cancelAnimationFrame(clock.raf);
   try {
     await fetch(`/api/sessions/${session.id}/end`, {
       method: 'POST',
