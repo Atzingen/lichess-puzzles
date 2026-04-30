@@ -2,6 +2,16 @@ import { initFilterUI, readFilters, updateCounter, applyPreset } from './filters
 import { createTrainer } from './trainer.js';
 
 async function boot() {
+  const params = new URLSearchParams(location.search);
+  const endedId = params.get('ended');
+  if (endedId) {
+    const banner = document.getElementById('ended-banner');
+    banner.innerHTML = `Sessão <code>${endedId.slice(0, 8)}</code> encerrada.
+      Estatísticas detalhadas chegam na Fase 3 — voltar à
+      <a href="/">configuração</a>.`;
+    banner.hidden = false;
+  }
+
   const trainer = createTrainer();
   await initFilterUI(updateCounter);
 
