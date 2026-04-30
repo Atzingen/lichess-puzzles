@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>lichess-puzzles — estatísticas</title>
+<link rel="stylesheet" href="/static/css/styles.css"/>
+<link rel="stylesheet" href="/static/vendor/uPlot.min.css"/>
+<link rel="stylesheet" href="/static/css/stats.css"/>
+<script src="/static/vendor/uPlot.iife.min.js"></script>
+</head>
+<body class="stats-body">
+<header class="stats-header">
+  <h1 id="stats-title">Sessão</h1>
+  <nav><a href="/">/ ↗</a></nav>
+</header>
+
+<main class="stats-main">
+  <section class="stats-cards" id="cards">—</section>
+
+  <section class="stats-chart-block">
+    <h2>Histograma de tempos</h2>
+    <div id="histogram" class="stats-chart" aria-label="histograma de tempos por exercício"></div>
+    <p class="stats-hint">Clique numa barra para filtrar a lista abaixo.</p>
+  </section>
+
+  <section class="stats-chart-block">
+    <h2>Rating × tempo</h2>
+    <div id="scatter" class="stats-chart" aria-label="dispersão rating contra tempo"></div>
+  </section>
+
+  <section class="stats-list-block">
+    <div class="stats-list-head">
+      <h2>Errados <span id="failed-count">(0)</span></h2>
+      <button class="primary" id="btn-redo-failed" disabled>Refazer errados</button>
+    </div>
+    <ul id="failed-list" class="stats-attempts"></ul>
+  </section>
+
+  <section class="stats-list-block" id="filtered-block" hidden>
+    <h2>Filtrados <span id="filtered-label"></span></h2>
+    <ul id="filtered-list" class="stats-attempts"></ul>
+  </section>
+
+  <footer class="stats-actions">
+    <button class="primary" id="btn-new-session">Nova sessão (mesmos params)</button>
+    <button class="secondary" id="btn-back-config">Voltar à configuração</button>
+  </footer>
+</main>
+
+<script type="module" src="/static/js/stats.js"></script>
+</body>
+</html>

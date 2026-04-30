@@ -62,6 +62,13 @@ def play(session_id: str) -> HTMLResponse:
     return HTMLResponse((STATIC_DIR / "play.html").read_text(encoding="utf-8"))
 
 
+@app.get("/play/{session_id}/stats", response_class=HTMLResponse)
+def play_stats(session_id: str) -> HTMLResponse:
+    if not _db_exists():
+        return HTMLResponse(MAINTENANCE_HTML)
+    return HTMLResponse((STATIC_DIR / "stats.html").read_text(encoding="utf-8"))
+
+
 @app.get("/healthz")
 def healthz() -> dict[str, bool]:
     return {"ok": True, "db": _db_exists()}

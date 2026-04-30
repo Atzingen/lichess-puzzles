@@ -58,3 +58,22 @@ def test_play_route_returns_maintenance_when_no_db(app_without_db) -> None:
     r = c.get("/play/anything")
     assert r.status_code == 200
     assert "ingest" in r.text.lower()
+
+
+def test_stats_route_returns_html(app_with_db) -> None:
+    c = TestClient(app_with_db)
+    sid = c.post("/api/sessions", json={
+        "mode": "count", "target": 5, "filters": {}
+    }).json()["session_id"]
+    r = c.get(f"/play/{sid}/stats")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "estat" in r.text.lower()  # title contains "estatísticas"
+    assert "/static/js/stats.js" in r.text
+
+
+def test_stats_route_returns_maintenance_when_no_db(app_without_db) -> None:
+    c = TestClient(app_without_db)
+    r = c.get("/play/anything/stats")
+    assert r.status_code == 200
+    assert "ingest" in r.text.lower()
