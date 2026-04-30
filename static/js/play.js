@@ -32,7 +32,7 @@ async function boot() {
 
   session.meta = meta.session;
   if (session.meta.ended_at) {
-    return showOverlay('Esta sessão já está encerrada.', 'Voltar', goExplore);
+    return showOverlay('Esta sessão já está encerrada.', 'Voltar', goStats);
   }
   if (!stored || !Array.isArray(stored.puzzle_ids) || stored.puzzle_ids.length === 0) {
     return showOverlay(
@@ -305,8 +305,8 @@ function showOverlay(msg, actionLabel, onAction) {
   document.getElementById('overlay').hidden = false;
 }
 
-function goExplore() {
-  location.href = '/explore?ended=' + encodeURIComponent(session.id);
+function goStats() {
+  location.href = `/play/${encodeURIComponent(session.id)}/stats`;
 }
 
 async function onQuit() {
@@ -325,9 +325,9 @@ async function endSession(reason) {
       body: JSON.stringify({ end_reason: reason }),
     });
   } catch { /* server-side guarantee not critical for redirect */ }
-  goExplore();
+  goStats();
 }
 
 boot().catch(e => {
-  showOverlay('Erro ao iniciar a sessão: ' + (e.message || e), 'Voltar', goExplore);
+  showOverlay('Erro ao iniciar a sessão: ' + (e.message || e), 'Voltar', goStats);
 });
