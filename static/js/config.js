@@ -31,6 +31,9 @@ async function boot() {
     r.addEventListener('change', refreshStartEnabled));
   document.querySelectorAll('.mode-options input').forEach(el =>
     el.addEventListener('input', refreshStartEnabled));
+  syncModeOptionsVisibility();
+  document.querySelectorAll('input[name=mode]').forEach(r =>
+    r.addEventListener('change', syncModeOptionsVisibility));
 
   await loadSessions();
   refreshStartEnabled();
@@ -132,10 +135,12 @@ async function onStart() {
 
   document.getElementById('btn-start').disabled = true;
   try {
+    const manualAdvance = !!document.getElementById('free-manual-advance')?.checked;
+    const autoAdvance = mode === 'free' ? !manualAdvance : true;
     const created = await createSession({
       mode,
       target: effectiveTarget,
-      auto_advance: true,
+      auto_advance: autoAdvance,
       dedupe_solved: dedupe,
       filters,
       parent_session: null,
@@ -209,6 +214,15 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch]));
+}
+
+function syncModeOptionsVisibility() {
+  const mode = readMode();
+  const ids = { time: 'opts-time', count: 'opts-count', free: 'opts-free' };
+  for (const [m, id] of Object.entries(ids)) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (m === mode) ? '' : 'none';
+  }
 }
 
 async function maybePrefillFromQuery() {
