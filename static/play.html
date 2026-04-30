@@ -2,11 +2,43 @@
 <html lang="pt-br">
 <head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>lichess-puzzles — sessão</title>
+<link rel="stylesheet" href="/static/vendor/chessground.base.css"/>
+<link rel="stylesheet" href="/static/vendor/chessground.brown.css"/>
+<link rel="stylesheet" href="/static/vendor/chessground.cburnett.css"/>
+<link rel="stylesheet" href="/static/css/styles.css"/>
+<link rel="stylesheet" href="/static/css/play.css"/>
+<script type="importmap">
+{
+  "imports": {
+    "chessground": "https://esm.sh/chessground@9.1.1",
+    "chess.js":    "https://esm.sh/chess.js@1.0.0"
+  }
+}
+</script>
 </head>
-<body>
-<main>
-  <p>Sessão (Fase 2 — em construção).</p>
-</main>
+<body class="play-body">
+<div class="play-shell">
+  <header class="play-bar">
+    <div class="play-clock" id="clock">00:00</div>
+    <div class="play-counter" id="counter">0 / 0</div>
+    <button class="play-quit" id="btn-quit" title="Encerrar sessão">⏹ encerrar</button>
+  </header>
+
+  <main class="play-board-wrap">
+    <div id="board" class="play-board"></div>
+    <div id="flash" class="play-flash" aria-live="polite"></div>
+  </main>
+
+  <div class="play-overlay" id="overlay" hidden>
+    <div class="play-overlay-card">
+      <p id="overlay-msg"></p>
+      <button class="primary" id="overlay-action">OK</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/static/js/play.js"></script>
 </body>
 </html>
