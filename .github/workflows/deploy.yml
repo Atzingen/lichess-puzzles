@@ -26,6 +26,8 @@ jobs:
           host: ${{ secrets.SSH_HOST_HOSTINGER02 }}
           username: ${{ secrets.SSH_USER_HOSTINGER02 }}
           key: ${{ secrets.SSH_PRIVATE_KEY_HOSTINGER02 }}
+          timeout: 60s
+          command_timeout: 10m
           script: |
             cd /var/local/apps/lichess-puzzles
             GIT_SSH_COMMAND='ssh -i ~/.ssh/lichess_puzzles_deploy_key' git pull
