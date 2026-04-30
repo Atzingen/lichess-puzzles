@@ -56,6 +56,17 @@ def random_puzzle(conn: sqlite3.Connection, filters: Filters) -> Puzzle | None:
     return _row_to_puzzle(row) if row else None
 
 
+def random_batch(
+    conn: sqlite3.Connection, filters: Filters, limit: int = 500
+) -> list[Puzzle]:
+    if limit <= 0:
+        return []
+    where, params = build_where(filters)
+    sql = f"SELECT * FROM puzzles {where} ORDER BY RANDOM() LIMIT ?"
+    rows = conn.execute(sql, [*params, int(limit)]).fetchall()
+    return [_row_to_puzzle(r) for r in rows]
+
+
 def get_by_id(conn: sqlite3.Connection, puzzle_id: str) -> Puzzle | None:
     row = conn.execute(
         "SELECT * FROM puzzles WHERE puzzle_id = ?", (puzzle_id,)
