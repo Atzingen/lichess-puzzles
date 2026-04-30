@@ -53,6 +53,12 @@ async function boot() {
   });
 
   document.getElementById('btn-quit').addEventListener('click', onQuit);
+  document.getElementById('btn-next-free')?.addEventListener('click', onNextFree);
+  document.getElementById('btn-retry')?.addEventListener('click', onRetry);
+  document.getElementById('sandbox')?.addEventListener('change', onSandboxToggle);
+  document.querySelectorAll('.variant-nav button').forEach(b =>
+    b.addEventListener('click', () => onVariantNav(b.dataset.variant)));
+  document.addEventListener('keydown', onKeydown);
   renderCounter();
   startClockLoop();
   await loadNextPuzzle();
@@ -380,6 +386,84 @@ async function endSession(reason) {
     });
   } catch { /* server-side guarantee not critical for redirect */ }
   goStats();
+}
+
+function onNextFree() {
+  if (ui.state !== 'OUTCOME_FREE') return;
+  setSidePanel(false);
+  loadNextPuzzle();
+}
+
+function onRetry() {
+  if (ui.state !== 'OUTCOME_FREE' || ui.postOpponentFen == null) return;
+  ui.chess = new Chess(ui.postOpponentFen);
+  ui.moveIndex = 1;
+  ui.board.set({
+    fen: ui.postOpponentFen,
+    lastMove: ui.postOpponentLastMove || undefined,
+    drawable: { autoShapes: [] },
+  });
+  setSidePanel(false);
+  setFlash('');
+  armUserTurn();
+}
+
+function onVariantNav(action) {
+  if (ui.state !== 'OUTCOME_FREE') return;
+  const last = ui.variantHistory.length - 1;
+  if (last < 0) return;
+  if (action === 'start')      ui.variantCursor = 0;
+  else if (action === 'end')   ui.variantCursor = last;
+  else if (action === 'prev')  ui.variantCursor = Math.max(0, ui.variantCursor - 1);
+  else if (action === 'next')  ui.variantCursor = Math.min(last, ui.variantCursor + 1);
+  paintVariantCursor();
+}
+
+function paintVariantCursor() {
+  const snap = ui.variantHistory[ui.variantCursor];
+  if (!snap) return;
+  ui.board.set({
+    fen: snap.fen,
+    lastMove: snap.lastMove || undefined,
+    movable: ui.sandboxOn
+      ? { color: 'both', free: true, dests: new Map() }
+      : { color: null, dests: new Map() },
+  });
+  const pos = document.getElementById('variant-pos');
+  if (pos) pos.textContent = `${ui.variantCursor} / ${Math.max(0, ui.variantHistory.length - 1)}`;
+}
+
+function onSandboxToggle(ev) {
+  if (ui.state !== 'OUTCOME_FREE') {
+    ev.target.checked = false;
+    return;
+  }
+  ui.sandboxOn = !!ev.target.checked;
+  if (ui.sandboxOn) {
+    ui.board.set({
+      movable: { color: 'both', free: true, dests: new Map() },
+      draggable: { showGhost: true },
+    });
+  } else {
+    paintVariantCursor();
+  }
+}
+
+function onKeydown(ev) {
+  if (ui.state !== 'OUTCOME_FREE') {
+    if (ev.key === 'Escape') onQuit();
+    return;
+  }
+  if (ev.key === 'ArrowLeft')  { ev.preventDefault(); onVariantNav('prev'); return; }
+  if (ev.key === 'ArrowRight') { ev.preventDefault(); onVariantNav('next'); return; }
+  if (ev.key === 'n' || ev.key === 'N') { ev.preventDefault(); onNextFree(); return; }
+  if (ev.key === 'r' || ev.key === 'R') {
+    ev.preventDefault();
+    const retryBtn = document.getElementById('btn-retry');
+    if (retryBtn && !retryBtn.hidden) onRetry();
+    return;
+  }
+  if (ev.key === 'Escape') onQuit();
 }
 
 boot().catch(e => {
